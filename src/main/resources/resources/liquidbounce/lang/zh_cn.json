@@ -674,6 +674,7 @@
   "liquidbounce.module.spammer.description": "在聊天框刷屏指定的信息。",
   "liquidbounce.module.speed.description": "允许你移动地更快。",
   "liquidbounce.module.autoF5.description": "打开背包或箱子时自动切换到第三人称视角(F5模式)。",
+  "liquidbounce.module.spearKill.description": "自动使用蓄力长矛攻击敌人。",
   "liquidbounce.module.sprint.description": "使你自动疾跑。",
   "liquidbounce.module.step.description": "允许你更快跨上方块。",
   "liquidbounce.module.storageESP.description": "突出显示所有可能包含物品的方块，使你能够透过墙壁看到它们。",

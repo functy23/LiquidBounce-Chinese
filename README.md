@@ -17,22 +17,33 @@
 
 ## ✨ 本分支的改动
 
+> 上游基线：`CCBlueX/LiquidBounce` 提交 `8fc1f12b`（2026-08-09，`mod_version=0.39.1`）。
+> 本仓库为单次提交的汉化派生仓库，**不是 GitHub fork**，与上游没有共同祖先，因此不能直接用 `git merge` 同步。
+
 1. **ClickGUI 界面汉化**
-   - 新增 `src-theme/src/routes/clickgui/localization.ts`：**216 个模块名 + 8 个分类名**的中文显示映射（仅显示层，不影响命令/配置标识符）；
-   - 汉化 16 处界面文案：窗口标题、顶部标签、搜索框、按钮/提示（定位、打开、移除组件、重置、添加项、添加值、取消、切换/按住/智能）、空状态（没有找到模块/组件）、按键提示等。
-2. **语言文件补全** `src/main/resources/resources/liquidbounce/lang/zh_cn.json`：补全 2 个缺失键，翻译 14 个仍为英文的值。
-3. **构建修复** `src-theme/package-lock.json`：将 lock 文件中 13 处 `registry.npmmirror.com` 镜像地址改回官方 npm 源（npm 12 默认拒绝拉取镜像远程 tarball，会导致 `npm ci` 失败）。
-4. **说明**：设置项的值名（如 `Scale`、`GridSize`）以及命令/配置文件中的标识符**有意保留英文**，改动它们会破坏命令与配置文件。
+   - 新增 `src-theme/src/routes/clickgui/localization.ts`：**234 个模块名 + 8 个分类名**的中文显示映射（仅显示层，不影响命令/配置标识符）。
+     其中 232 个覆盖 `ModuleManager` 注册的全部模块（覆盖率 100%），另 2 个为上游遗留条目。
+     该文件由 `Module.svelte`、`Search.svelte`、`Panel.svelte` 引用；未命中的模块名回退显示原名。
+   - 汉化 ClickGUI 界面文案：搜索框占位符、空状态（没有找到模块/组件）、以及设置项与 HUD 编辑器面板中的按钮/提示文字，共涉及 16 个 `.svelte` 文件。
+   - **绑定动作显示**：`SwitchBindAction.svelte` 的 `Toggle`/`Hold`/`Smart` 在显示层映射为「切换/按住/智能」；
+     其**存储值仍为英文**，因为该值是写入配置文件的持久化枚举（`BindAction`），翻译它会破坏类型契约并使已保存的绑定失效。
+2. **语言文件补全** `src/main/resources/resources/liquidbounce/lang/zh_cn.json`
+   - 相对上游基线补全 2 个缺失键，另翻译 9 个原本与 `en_us.json` 完全相同（即未翻译）的值；
+   - 本次维护补齐 `liquidbounce.module.spearKill.description`，至此 **zh_cn 对 en_us 的键覆盖率为 100%**（796 / 796）。
+   - 仍保留 5 个刻意为英文的值（如 `ID: %s`、`TPS: %s`、`#%s %s [%s] %s`），它们只含占位符或通用缩写。
+3. **说明**：设置项的值名（如 `Scale`、`GridSize`）以及命令/配置文件中的标识符**有意保留英文**，改动它们会破坏命令与配置文件。
+   这条规则同样适用于上文的绑定动作值，是本分支的一条硬性约定。
 
 ## 🚀 构建
 
 环境要求：
 
-- **JDK 25**（Temurin 25+，项目使用 Java 25 工具链）
-- **Node.js 18+**（含 npm，用于构建 Web 主题）
+- **JDK 25**（Temurin 25+，项目使用 Java 25 工具链；`gradle/libs.versions.toml` 中 `jdk = "25"`）
+- **Node.js**（含 npm，用于构建 Web 主题；`src-theme/package.json` 未声明 `engines` 约束）
 
 ```bash
-./gradlew build
+./gradlew build      # 完整构建
+./gradlew test       # 仅跑测试（254 个用例）
 ```
 
 构建产物：`build/libs/liquidbounce-0.39.1.jar`
@@ -41,7 +52,11 @@
 
 - 构建任务会读取 git 提交信息（`generateGitProperties`），请确保目录是 git 仓库；
 - ClickGUI 是 Web 前端（Vite + Svelte），首次构建会自动执行 `npm ci` + `npm run build`，需要联网；
-- 想跳过主题重新构建时，可仅修改 `src-theme/src` 后重新执行 `./gradlew build`。
+- 想跳过主题重新构建时，可仅修改 `src-theme/src` 后重新执行 `./gradlew build`；
+- 首次构建需要下载 Minecraft 26.2、映射与完整依赖图，耗时较长（本机实测约 17 分钟）；
+- 前端类型检查 `npx svelte-check`（在 `src-theme/` 下运行）**当前有 18 个既有报错**，全部位于
+  `src-theme/src/routes/hud/elements/**`（`Hud*Settings` 类型未生成）。这些文件与上游基线完全一致，
+  属上游既有问题，不影响 `vite build`。
 
 ## 📦 安装与使用
 
