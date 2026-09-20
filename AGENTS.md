@@ -3,6 +3,15 @@
 本文件面向在此仓库中工作的 AI 代理与人类贡献者。**只记录已在本机验证过的事实**；
 未验证的内容一律不写，因为错误的指引比没有指引更有害。
 
+## 文档约定（双语 + 徽章）
+
+README 为**英文主文档**（`README.md`）+ **中文全量翻译**（`doc/README_zh-CN.md`），
+两份内容一一对应，**改一边必须同步另一边**。两份文件顶部是同一组 shields.io 徽章
+（语言/平台/CI/License/Release/Downloads/Stars/Repo Size/Contributors 按仓库实际能力裁剪，
+没有的能力不放，避免死链），徽章下面一行语言切换：
+`README.md` 用 `**English** | [简体中文](doc/README_zh-CN.md)`，
+中文版用 `[English](../README.md) | **简体中文**`。增删徽章时两份一起改。
+
 ## 这是什么仓库
 
 `CCBlueX/LiquidBounce`（水影）的**中文汉化派生仓库**，不是 GitHub fork。
