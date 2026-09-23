@@ -20,7 +20,6 @@ package net.ccbluex.liquidbounce.features.module
 
 import it.unimi.dsi.fastutil.objects.ObjectRBTreeSet
 import it.unimi.dsi.fastutil.objects.Reference2ObjectArrayMap
-import net.ccbluex.fastutil.mapToArray
 import net.ccbluex.liquidbounce.config.ConfigSystem
 import net.ccbluex.liquidbounce.config.autoconfig.AutoConfig
 import net.ccbluex.liquidbounce.config.types.VALUE_NAME_ORDER
@@ -138,6 +137,7 @@ import net.ccbluex.liquidbounce.features.module.modules.movement.ModuleSprint
 import net.ccbluex.liquidbounce.features.module.modules.movement.ModuleStrafe
 import net.ccbluex.liquidbounce.features.module.modules.movement.ModuleTargetStrafe
 import net.ccbluex.liquidbounce.features.module.modules.movement.ModuleTeleport
+import net.ccbluex.liquidbounce.features.module.modules.movement.ModuleTridentBoost
 import net.ccbluex.liquidbounce.features.module.modules.movement.ModuleVehicleBoost
 import net.ccbluex.liquidbounce.features.module.modules.movement.ModuleVehicleControl
 import net.ccbluex.liquidbounce.features.module.modules.movement.ModuleSnapTap
@@ -179,6 +179,7 @@ import net.ccbluex.liquidbounce.features.module.modules.player.antivoid.ModuleAn
 import net.ccbluex.liquidbounce.features.module.modules.player.autobuff.ModuleAutoBuff
 import net.ccbluex.liquidbounce.features.module.modules.player.ModuleAutoCrafter
 import net.ccbluex.liquidbounce.features.module.modules.player.autoqueue.ModuleAutoQueue
+import net.ccbluex.liquidbounce.features.module.modules.player.autodeposit.ModuleAutoDeposit
 import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.ModuleAutoShop
 import net.ccbluex.liquidbounce.features.module.modules.player.cheststealer.ModuleChestStealer
 import net.ccbluex.liquidbounce.features.module.modules.player.invcleaner.ModuleInventoryCleaner
@@ -197,7 +198,7 @@ import net.ccbluex.liquidbounce.features.module.modules.render.ModuleChams
 import net.ccbluex.liquidbounce.features.module.modules.render.ModuleClickGui
 import net.ccbluex.liquidbounce.features.module.modules.render.ModuleCombineMobs
 import net.ccbluex.liquidbounce.features.module.modules.render.ModuleCrystalView
-import net.ccbluex.liquidbounce.features.module.modules.render.ModuleCustomAmbience
+import net.ccbluex.liquidbounce.features.module.modules.render.customambience.ModuleCustomAmbience
 import net.ccbluex.liquidbounce.features.module.modules.render.ModuleDamageParticles
 import net.ccbluex.liquidbounce.features.module.modules.render.ModuleDebug
 import net.ccbluex.liquidbounce.features.module.modules.render.ModuleFreeCam
@@ -240,6 +241,8 @@ import net.ccbluex.liquidbounce.features.module.modules.render.hats.ModuleHats
 import net.ccbluex.liquidbounce.features.module.modules.render.hitfx.ModuleHitFX
 import net.ccbluex.liquidbounce.features.module.modules.render.murdermystery.ModuleMurderMystery
 import net.ccbluex.liquidbounce.features.module.modules.render.nametags.ModuleNametags
+import net.ccbluex.liquidbounce.features.module.modules.render.potionfx.ModulePotionFX
+import net.ccbluex.liquidbounce.features.module.modules.render.totemeffect.ModuleTotemEffect
 import net.ccbluex.liquidbounce.features.module.modules.render.trajectories.ModuleTrajectories
 import net.ccbluex.liquidbounce.features.module.modules.world.ModuleAirPlace
 import net.ccbluex.liquidbounce.features.module.modules.world.ModuleAutoDisable
@@ -266,13 +269,12 @@ import net.ccbluex.liquidbounce.features.module.modules.world.nuker.ModuleNuker
 import net.ccbluex.liquidbounce.features.module.modules.world.packetmine.ModulePacketMine
 import net.ccbluex.liquidbounce.features.module.modules.world.scaffold.ModuleScaffold
 import net.ccbluex.liquidbounce.features.module.modules.world.traps.ModuleAutoTrap
-import net.ccbluex.liquidbounce.script.ScriptApiRequired
+import net.ccbluex.liquidbounce.features.addon.AddonApi
 import net.ccbluex.liquidbounce.utils.client.clientStartDurationMs
 import net.ccbluex.liquidbounce.utils.client.inGame
 import net.ccbluex.liquidbounce.utils.client.logger
 import net.ccbluex.liquidbounce.utils.client.mc
 import net.ccbluex.liquidbounce.utils.input.InputBind
-import org.lwjgl.glfw.GLFW
 
 private val modules = ObjectRBTreeSet<ClientModule>(VALUE_NAME_ORDER)
 
@@ -293,6 +295,8 @@ object ModuleManager : EventListener, Collection<ClientModule> by modules {
     private val smartKeyboardStates = Reference2ObjectArrayMap<ClientModule, SmartBindKeyboardState>()
     private val smartMouseStates = Reference2ObjectArrayMap<ClientModule, SmartBindMouseState>()
 
+    private fun modulesWithOwnBinds() = modules.filterNot(ClientModule::externalBind)
+
     /**
      * Handles keystrokes for module binds.
      * This also runs in GUIs, so that if a GUI is opened while a key is pressed,
@@ -300,11 +304,11 @@ object ModuleManager : EventListener, Collection<ClientModule> by modules {
      */
     @Suppress("unused")
     private val keyboardKeyHandler = handler<KeyboardKeyEvent> { event ->
-        when (event.action) {
-            GLFW.GLFW_PRESS -> if (mc.gui.screen() == null) {
+        if (event.isPressed) {
+            if (mc.gui.screen() == null) {
                 // Usually nobody actually wants a module to activate when they press the Minecraft debug key combo.
                 if (mc.options.keyDebugModifier.isDown) return@handler
-                for (m in modules) {
+                for (m in modulesWithOwnBinds()) {
                     if (!m.bind.matchesKeyPress(event)) {
                         continue
                     }
@@ -323,36 +327,32 @@ object ModuleManager : EventListener, Collection<ClientModule> by modules {
                     }
                 }
             }
-
-            GLFW.GLFW_REPEAT -> {
-                for (m in modules) {
-                    if (m.bind.action != InputBind.BindAction.SMART ||
-                        !m.bind.matchesKey(event.keyCode, event.scanCode) ||
-                        m !in smartKeyboardStates
-                    ) {
-                        continue
-                    }
-
-                    smartKeyboardStates[m] = SmartBindKeyboardState.HOLDING
+        } else if (event.isRepeat) {
+            for (m in modulesWithOwnBinds()) {
+                if (m.bind.action != InputBind.BindAction.SMART ||
+                    !m.bind.matchesKey(event.keyCode, event.scanCode) ||
+                    m !in smartKeyboardStates
+                ) {
+                    continue
                 }
+
+                smartKeyboardStates[m] = SmartBindKeyboardState.HOLDING
             }
+        } else if (event.isReleased) {
+            for (m in modulesWithOwnBinds()) {
+                if (!m.bind.matchesKeyRelease(event)) {
+                    continue
+                }
 
-            GLFW.GLFW_RELEASE -> {
-                for (m in modules) {
-                    if (!m.bind.matchesKeyRelease(event)) {
-                        continue
+                when (m.bind.action) {
+                    InputBind.BindAction.HOLD -> m.enabled = false
+
+                    InputBind.BindAction.SMART -> {
+                        val stateBeforePress = smartKeyboardStates.remove(m) ?: continue
+                        m.enabled = stateBeforePress == SmartBindKeyboardState.PENDING_DISABLED
                     }
 
-                    when (m.bind.action) {
-                        InputBind.BindAction.HOLD -> m.enabled = false
-
-                        InputBind.BindAction.SMART -> {
-                            val stateBeforePress = smartKeyboardStates.remove(m) ?: continue
-                            m.enabled = stateBeforePress == SmartBindKeyboardState.PENDING_DISABLED
-                        }
-
-                        InputBind.BindAction.TOGGLE -> {}
-                    }
+                    InputBind.BindAction.TOGGLE -> {}
                 }
             }
         }
@@ -360,9 +360,9 @@ object ModuleManager : EventListener, Collection<ClientModule> by modules {
 
     @Suppress("unused")
     private val mouseButtonHandler = handler<MouseButtonEvent> { event ->
-        when (event.action) {
-            GLFW.GLFW_PRESS -> if (mc.gui.screen() == null) {
-                for (m in modules) {
+        if (event.isPressed) {
+            if (mc.gui.screen() == null) {
+                for (m in modulesWithOwnBinds()) {
                     if (!m.bind.matchesMousePress(event)) {
                         continue
                     }
@@ -377,34 +377,32 @@ object ModuleManager : EventListener, Collection<ClientModule> by modules {
                     }
                 }
             }
+        } else if (event.isReleased) {
+            for (m in modulesWithOwnBinds()) {
+                if (!m.bind.matchesMouseRelease(event)) {
+                    continue
+                }
 
-            GLFW.GLFW_RELEASE -> {
-                for (m in modules) {
-                    if (!m.bind.matchesMouseRelease(event)) {
-                        continue
-                    }
+                when (m.bind.action) {
+                    InputBind.BindAction.HOLD -> m.enabled = false
 
-                    when (m.bind.action) {
-                        InputBind.BindAction.HOLD -> m.enabled = false
+                    InputBind.BindAction.SMART -> {
+                        val state = smartMouseStates.remove(m) ?: continue
 
-                        InputBind.BindAction.SMART -> {
-                            val state = smartMouseStates.remove(m) ?: continue
+                        // Mouse button events do not emit GLFW_REPEAT, so SMART falls back to:
+                        // - hold if the press was long enough
+                        // - toggle otherwise
+                        val shouldFallbackToHold =
+                            clientStartDurationMs - state.pressTimestamp >= SMART_MOUSE_HOLD_THRESHOLD_MS
 
-                            // Mouse button events do not emit GLFW_REPEAT, so SMART falls back to:
-                            // - hold if the press was long enough
-                            // - toggle otherwise
-                            val shouldFallbackToHold =
-                                clientStartDurationMs - state.pressTimestamp >= SMART_MOUSE_HOLD_THRESHOLD_MS
-
-                            if (shouldFallbackToHold) {
-                                m.enabled = false
-                            } else {
-                                m.enabled = !state.pendingEnabled
-                            }
+                        if (shouldFallbackToHold) {
+                            m.enabled = false
+                        } else {
+                            m.enabled = !state.pendingEnabled
                         }
-
-                        InputBind.BindAction.TOGGLE -> {}
                     }
+
+                    InputBind.BindAction.TOGGLE -> {}
                 }
             }
         }
@@ -585,6 +583,7 @@ object ModuleManager : EventListener, Collection<ClientModule> by modules {
             ModuleReverseStep,
             ModuleStrafe,
             ModuleTerrainSpeed,
+            ModuleTridentBoost,
             ModuleVehicleBoost,
             ModuleVehicleControl,
             ModuleSpider,
@@ -607,6 +606,7 @@ object ModuleManager : EventListener, Collection<ClientModule> by modules {
             ModuleBlink,
             ModuleChestCleaner,
             ModuleChestStealer,
+            ModuleAutoDeposit,
             ModuleEagle,
             ModuleFastExp,
             ModuleFastUse,
@@ -679,6 +679,8 @@ object ModuleManager : EventListener, Collection<ClientModule> by modules {
             ModuleProtectionZones,
             ModuleCrosshair,
             ModuleWings,
+            ModulePotionFX,
+            ModuleTotemEffect,
 
             // World
             AutoMobHeal,
@@ -721,14 +723,20 @@ object ModuleManager : EventListener, Collection<ClientModule> by modules {
         if (!modules.add(module)) {
             error("Module '${module.name}' is already registered.")
         }
-        module.walkInit()
-        module.onRegistration()
+
+        runCatching {
+            module.walkInit()
+            module.onRegistration()
+        }.onFailure {
+            modules.remove(module)
+        }.getOrThrow()
     }
 
     fun removeModule(module: ClientModule) {
-        if (!modules.remove(module)) {
-            error("Module '${module.name}' is not registered.")
-        }
+        // The set compares by name, so check identity.
+        check(any { it === module }) { "Module '${module.name}' is not registered." }
+        modules.remove(module)
+
         if (module.enabled) {
             module.enabled = false
         }
@@ -739,21 +747,7 @@ object ModuleManager : EventListener, Collection<ClientModule> by modules {
         modules.clear()
     }
 
-    /**
-     * This is being used by UltralightJS for the implementation of the ClickGUI. DO NOT REMOVE!
-     */
-    @JvmName("getCategories")
-    @ScriptApiRequired
-    fun getCategories() = ModuleCategories.entries.mapToArray { it.tag }
-
-    @JvmName("getModules")
-    @ScriptApiRequired
-    fun getModules(): Collection<ClientModule> = modules
-
-    @JvmName("getModuleByName")
-    @ScriptApiRequired
-    fun getModuleByName(module: String) = find { it.name.equals(module, true) }
-
+    @AddonApi
     operator fun get(moduleName: String) = modules.find { it.name.equals(moduleName, true) }
 
 }

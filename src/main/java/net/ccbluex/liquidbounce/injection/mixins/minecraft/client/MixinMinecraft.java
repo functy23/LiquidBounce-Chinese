@@ -30,7 +30,7 @@ import net.ccbluex.liquidbounce.event.CoroutineTicker;
 import net.ccbluex.liquidbounce.event.EventManager;
 import net.ccbluex.liquidbounce.event.TickLoopTaskExecutor;
 import net.ccbluex.liquidbounce.event.events.*;
-import net.ccbluex.liquidbounce.features.misc.HideAppearance;
+import net.ccbluex.liquidbounce.features.misc.SelfDestruct;
 import net.ccbluex.liquidbounce.features.module.modules.combat.ModuleAutoClicker;
 import net.ccbluex.liquidbounce.features.module.modules.combat.ModuleNoMissCooldown;
 import net.ccbluex.liquidbounce.features.module.modules.combat.killaura.features.KillAuraAutoBlock;
@@ -134,7 +134,7 @@ public abstract class MixinMinecraft {
     /**
      * Entry point
      */
-    @Inject(method = "<init>", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Minecraft;resizeGui()V"))
+    @Inject(method = "<init>(Lnet/minecraft/client/main/GameConfig;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Minecraft;resizeGui()V"))
     private void startClient(CallbackInfo callback) {
         EventManager.INSTANCE.callEvent(ClientStartEvent.INSTANCE);
     }
@@ -148,7 +148,7 @@ public abstract class MixinMinecraft {
         EventManager.INSTANCE.callEvent(ClientShutdownEvent.INSTANCE);
     }
 
-    @Inject(method = "<init>", at = @At(value = "FIELD",
+    @Inject(method = "<init>(Lnet/minecraft/client/main/GameConfig;)V", at = @At(value = "FIELD",
         target = "Lnet/minecraft/client/Minecraft;profileKeyPairManager:Lnet/minecraft/client/multiplayer/ProfileKeyPairManager;",
         ordinal = 0, shift = At.Shift.AFTER, opcode = Opcodes.PUTFIELD))
     private void onSessionInit(CallbackInfo callback) {
@@ -169,7 +169,7 @@ public abstract class MixinMinecraft {
             ordinal = 1),
             cancellable = true)
     private void getClientTitle(CallbackInfoReturnable<String> callback) {
-        if (HideAppearance.INSTANCE.isHidingNow()) {
+        if (SelfDestruct.INSTANCE.isDestructed()) {
             return;
         }
 

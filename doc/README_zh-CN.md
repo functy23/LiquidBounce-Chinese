@@ -31,7 +31,7 @@
 
 > 基于 [CCBlueX/LiquidBounce](https://github.com/CCBlueX/LiquidBounce) 的**中文汉化修改版**，非官方构建。
 >
-> 分支版本：`0.39.1` · 支持 Minecraft `26.2` · 平台：Fabric
+> 分支版本：`0.40.1` · 支持 Minecraft `26.2` · 平台：Fabric
 
 ## ⚠️ 免责声明
 
@@ -40,20 +40,22 @@
 
 ## ✨ 本分支的改动
 
-> 上游基线：`CCBlueX/LiquidBounce` 提交 `8fc1f12b`（2026-08-09，`mod_version=0.39.1`）。
-> 本仓库为单次提交的汉化派生仓库，**不是 GitHub fork**，与上游没有共同祖先，因此不能直接用 `git merge` 同步。
+> 上游基线：`CCBlueX/LiquidBounce` 提交 `adfddc078`（2026-09-23，`mod_version=0.40.1`，`nextgen` 分支）。
 
 1. **ClickGUI 界面汉化**
-   - 新增 `src-theme/src/routes/clickgui/localization.ts`：**234 个模块名 + 8 个分类名**的中文显示映射（仅显示层，不影响命令/配置标识符）。
-     其中 232 个覆盖 `ModuleManager` 注册的全部模块（覆盖率 100%），另 2 个为上游遗留条目。
+   - 新增 `src-theme/src/routes/clickgui/localization.ts`：**240 个模块名 + 8 个分类名**的中文显示映射（仅显示层，不影响命令/配置标识符）。
+     0.40.1 中声明的 **240 个模块已全部覆盖（覆盖率 100%）**，且没有多余条目：其中 4 个（`AutoDeposit`、`PotionFX`、`TotemEffect`、`TridentBoost`）是本次上游新增，另 2 个（`AutoBuff`、`BetterTitle`）早就在上游存在、只是此前漏译。
      该文件由 `Module.svelte`、`Search.svelte`、`Panel.svelte` 引用；未命中的模块名回退显示原名。
-   - 汉化 ClickGUI 界面文案：搜索框占位符、空状态（没有找到模块/组件）、以及设置项与 HUD 编辑器面板中的按钮/提示文字，共涉及 16 个 `.svelte` 文件。
+   - 汉化 ClickGUI 界面文案：搜索框占位符、空状态（没有找到模块/组件）、以及设置项与 HUD 编辑器面板中的按钮/提示文字。
+     **共 16 个 `.svelte` 文件含有中文文案**；第 17 个（`Panel.svelte`）只增加了分类名的显示层映射调用，本身不含文案。
    - **绑定动作显示**：`SwitchBindAction.svelte` 的 `Toggle`/`Hold`/`Smart` 在显示层映射为「切换/按住/智能」；
      其**存储值仍为英文**，因为该值是写入配置文件的持久化枚举（`BindAction`），翻译它会破坏类型契约并使已保存的绑定失效。
-2. **语言文件补全** `src/main/resources/resources/liquidbounce/lang/zh_cn.json`
-   - 相对上游基线补全 2 个缺失键，另翻译 9 个原本与 `en_us.json` 完全相同（即未翻译）的值；
-   - 本次维护补齐 `liquidbounce.module.spearKill.description`，至此 **zh_cn 对 en_us 的键覆盖率为 100%**（796 / 796）。
-   - 仍保留 5 个刻意为英文的值（如 `ID: %s`、`TPS: %s`、`#%s %s [%s] %s`），它们只含占位符或通用缩写。
+2. **语言文件重做** `src/main/resources/resources/liquidbounce/lang/zh_cn.json`
+   - 上游在 0.40.1 把命令系统整体重写为 Brigadier DSL，语言键格式随之改变：旧键带 `.subcommand.` / `.result.` / `.parameter.` 段，新键去掉了这些段
+     （`.friend list result noFriends` → `.friend.list.noFriends`）。因此旧的 `zh_cn.json` 里有 **370 个再也匹配不到的孤儿命令键**。
+   - 本次**清掉了全部 370 个孤儿键，并补齐了 382 个上游新键**，现在 `zh_cn.json` 与 `en_us.json` 的键**完全相同（各 808 个）且顺序一致**（覆盖率 100%）。
+     译文记忆被保留：425 个值沿用本分支原有译文，222 个由旧格式重新映射而来，70 个为新增翻译（插件系统、市场/配置系统，以及上游自己也没译的若干条目），3 个是本分支更清楚的措辞，88 个取自上游 `zh_cn.json`。
+   - 上游自带校验脚本 `scripts/verify-i18n.mjs`，以上游 `en_us.json` 为基准检查缺失键、额外键与占位符数量。`node scripts/verify-i18n.mjs` 对 zh_cn 的输出为 **`OK zh_cn 0 issue(s)`**。
 3. **说明**：设置项的值名（如 `Scale`、`GridSize`）以及命令/配置文件中的标识符**有意保留英文**，改动它们会破坏命令与配置文件。
    这条规则同样适用于上文的绑定动作值，是本分支的一条硬性约定。
 
@@ -66,10 +68,10 @@
 
 ```bash
 ./gradlew build      # 完整构建
-./gradlew test       # 仅跑测试（254 个用例）
+./gradlew test       # 仅跑测试（394 个用例）
 ```
 
-构建产物：`build/libs/liquidbounce-0.39.1.jar`
+构建产物：`build/libs/liquidbounce-0.40.1.jar`
 
 注意事项：
 
@@ -77,13 +79,14 @@
 - ClickGUI 是 Web 前端（Vite + Svelte），首次构建会自动执行 `npm ci` + `npm run build`，需要联网；
 - 想跳过主题重新构建时，可仅修改 `src-theme/src` 后重新执行 `./gradlew build`；
 - 首次构建需要下载 Minecraft 26.2、映射与完整依赖图，耗时较长（本机实测约 17 分钟）；
-- 前端类型检查 `npx svelte-check`（在 `src-theme/` 下运行）**当前有 18 个既有报错**，全部位于
-  `src-theme/src/routes/hud/elements/**`（`Hud*Settings` 类型未生成）。这些文件与上游基线完全一致，
-  属上游既有问题，不影响 `vite build`。
+- 前端类型检查 `npx svelte-check`（在 `src-theme/` 下运行）**当前在 7 个文件中报 21 个错误**（0 个 warning）：
+  其中 18 个既有报错位于 `src-theme/src/routes/hud/elements/**`（`Hud*Settings` 类型未生成，与上游一致），
+  另 3 个位于 `src-theme/src/routes/menu/common/modal/Tabs.svelte`，是上游 0.40.1 自己引入的（该文件与本仓库上游逐字节一致）。
+  两类都属上游既有问题，不影响 `vite build`。
 
 ## 📦 安装与使用
 
-1. 将 `liquidbounce-0.39.1.jar` 放入 Fabric 客户端的 `mods` 文件夹（MC 26.2，需安装 Fabric API 与 fabric-language-kotlin）；
+1. 将 `liquidbounce-0.40.1.jar` 放入 Fabric 客户端的 `mods` 文件夹（MC 26.2，需安装 Fabric API 与 fabric-language-kotlin）；
 2. 进游戏后执行 `/client language set zh_cn`，或直接把游戏语言设为简体中文（AUTO 会自动跟随）；
 3. 按 **右 Shift** 打开 ClickGUI，分类、模块名与界面文字均为中文。
 
@@ -93,6 +96,8 @@
   这些是配置/命令的标识符，改动会导致命令与存档配置失效，因此汉化版刻意保留英文。
 - **想恢复原版？**
   直接使用官方原版 jar，或还原本分支修改过的文件（改动清单见上方「本分支的改动」）。
+- **为什么升级到 0.40.1 后旧命令汉化不生效了？**
+  上游 0.40.1 重写了命令系统，语言键格式随之变化；本分支已全部重新映射，直接使用本仓库的 `zh_cn.json` 即可，不要用旧文件覆盖它。
 - **如何关闭 ClientChat（客户端聊天/IRC）？**
   ClickGUI → 设置 → ClientChat → 关闭 Enabled；或执行 `.value set ClientChat.Enabled false`。
 

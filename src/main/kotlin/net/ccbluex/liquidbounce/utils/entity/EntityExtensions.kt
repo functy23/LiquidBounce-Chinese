@@ -22,6 +22,7 @@
 package net.ccbluex.liquidbounce.utils.entity
 
 import net.ccbluex.liquidbounce.common.ShapeFlag
+import net.ccbluex.liquidbounce.features.addon.AddonApi
 import net.ccbluex.liquidbounce.interfaces.ClientInputAddition
 import net.ccbluex.liquidbounce.interfaces.LocalPlayerAddition
 import net.ccbluex.liquidbounce.utils.aiming.data.Rotation
@@ -84,6 +85,7 @@ import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.MagmaBlock
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.HitResult
+import net.minecraft.world.phys.Vec2
 import net.minecraft.world.phys.Vec3
 import net.minecraft.world.phys.shapes.EntityCollisionContext
 import net.minecraft.world.scores.DisplaySlot
@@ -175,8 +177,9 @@ val Entity.netherPosition: Vec3
         Vec3(x / 8.0, y, z / 8.0)
     }
 
+@AddonApi
 val LocalPlayer.moving
-    get() = input.movementForward != 0.0f || input.movementSideways != 0.0f
+    get() = input.moveVector != Vec2.ZERO
 
 val ClientInput.untransformed: Input
     get() = (this as ClientInputAddition).`liquid_bounce$getUntransformed`()
@@ -202,9 +205,6 @@ val LocalPlayer.airTicks: Int
 
 val LocalPlayer.onGroundTicks: Int
     get() = (this as LocalPlayerAddition).`liquid_bounce$getOnGroundTicks`()
-
-val LocalPlayer.direction: Float
-    get() = getMovementDirectionOfInput(DirectionalInput(input))
 
 /**
  * Check if the attack speed is below 1 tick. If so, we have a cooldown.
@@ -347,9 +347,12 @@ fun getMovementDirectionOfInput(facingYaw: Float, input: DirectionalInput = Dire
     return actualYaw
 }
 
+@AddonApi
 inline val Entity.horizontalSpeed: Double
     get() = deltaMovement.horizontalDistance()
 
+@AddonApi
+@JvmOverloads
 fun Vec3.withStrafe(
     speed: Double = horizontalDistance(),
     strength: Double = 1.0,
@@ -380,6 +383,16 @@ val Entity.rotation: Rotation
 
 val LocalPlayer.lastRotation: Rotation
     get() = Rotation(this.yRotLast, this.xRotLast, true)
+
+/**
+ * Check if the entity is inside the world border.
+ *
+ * Mirrors the server-side attack/interact border check.
+ *
+ * @see net.minecraft.server.network.ServerGamePacketListenerImpl.handleAttack
+ */
+val Entity.isWithinWorldBorder: Boolean
+    get() = level().worldBorder.isWithinBounds(blockPosition())
 
 val Entity.box: AABB
     get() = boundingBox.inflate(pickRadius.toDouble())
@@ -768,7 +781,7 @@ fun Entity.doesNotCollideBelow(until: Double = -64.0): Boolean {
 /**
  * Check if the entity box collides with any block in the world at the given [pos].
  */
-fun Entity.doesCollideAt(pos: Vec3 = player.position()): Boolean {
+fun Entity.doesCollideAt(pos: Vec3 = this.position()): Boolean {
     return !this.level().getBlockCollisions(this, getBoundingBoxAt(pos)).allEmpty()
 }
 

@@ -20,6 +20,7 @@
     export let category: string;
     export let modules: TModule[];
     export let panelIndex: number;
+    export let icon: string | undefined = undefined;
 
     let panelElement: HTMLElement;
     let modulesElement: HTMLElement;
@@ -41,6 +42,10 @@
         expanded: boolean;
         scrollTop: number;
         zIndex: number;
+    }
+
+    function showFallbackIcon(event: Event) {
+        (event.currentTarget as HTMLImageElement).src = "img/clickgui/icon-client.svg";
     }
 
     function clamp(number: number, min: number, max: number) {
@@ -122,8 +127,26 @@
     function toggleExpanded() {
         panelConfig.expanded = !panelConfig.expanded;
 
-        fixPosition();
         savePanelConfig();
+    }
+
+    /**
+     * The panel only reaches its new height once the `max-height` transition of the module
+     * list has finished, so the position can only be clamped here. Doing it right after the
+     * toggle would measure the height the panel had *before* it was expanded or collapsed.
+     */
+    function handleModulesTransitionEnd(e: TransitionEvent) {
+        if (e.target !== modulesElement || e.propertyName !== "max-height") {
+            return;
+        }
+
+        const {left, top} = panelConfig;
+
+        fixPosition();
+
+        if (panelConfig.left !== left || panelConfig.top !== top) {
+            savePanelConfig();
+        }
     }
 
     function handleModulesScroll() {
@@ -199,8 +222,9 @@
     >
         <img
                 class="icon"
-                src="img/clickgui/icon-{category.toLowerCase()}.svg"
+                src={icon ?? `img/clickgui/icon-${category.toLowerCase()}.svg`}
                 alt="icon"
+                on:error={showFallbackIcon}
         />
         <span class="category">{tCategory(category)}</span>
 
@@ -214,6 +238,7 @@
             class="modules"
             class:expanded={panelConfig.expanded}
             on:scroll={handleModulesScroll}
+            on:transitionend={handleModulesTransitionEnd}
             bind:this={modulesElement}
     >
         {#each modules as {name, enabled, description, aliases} (name)}

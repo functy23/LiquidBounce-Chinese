@@ -29,9 +29,9 @@
 
 ## Overview
 
-> A **Chinese-localized fork** of [CCBlueX/LiquidBounce](https://github.com/CCBlueX/LiquidBounce) — an unofficial build.
+> A **Chinese-localized build** of [CCBlueX/LiquidBounce](https://github.com/CCBlueX/LiquidBounce) — an unofficial build.
 >
-> Branch version: `0.39.1` · Supports Minecraft `26.2` · Platform: Fabric
+> Branch version: `0.40.1` · Supports Minecraft `26.2` · Platform: Fabric
 
 ## ⚠️ Disclaimer
 
@@ -40,20 +40,22 @@
 
 ## ✨ Changes in This Branch
 
-> Upstream baseline: `CCBlueX/LiquidBounce` commit `8fc1f12b` (2026-08-09, `mod_version=0.39.1`).
-> This repository is a single-commit localization derivative and **is not a GitHub fork**; it has no common ancestor with upstream, so it cannot be synced with a plain `git merge`.
+> Upstream baseline: `CCBlueX/LiquidBounce` commit `adfddc078` (2026-09-23, `mod_version=0.40.1`, `nextgen` branch).
 
 1. **ClickGUI interface localization**
-   - Added `src-theme/src/routes/clickgui/localization.ts`: Chinese display mappings for **234 module names + 8 category names** (display layer only; commands and configuration identifiers are unaffected).
-     232 of them cover every module registered by `ModuleManager` (100% coverage); the remaining 2 are legacy upstream entries.
+   - Added `src-theme/src/routes/clickgui/localization.ts`: Chinese display mappings for **240 module names + 8 category names** (display layer only; commands and configuration identifiers are unaffected).
+     All **240 modules declared in 0.40.1 are covered (100%)**, with no stale entries: 4 of them (`AutoDeposit`, `PotionFX`, `TotemEffect`, `TridentBoost`) are new in this upstream version, and 2 (`AutoBuff`, `BetterTitle`) existed before but had been missing from this file.
      The file is referenced by `Module.svelte`, `Search.svelte` and `Panel.svelte`; module names with no match fall back to the original name.
-   - Localized the ClickGUI interface strings: the search box placeholder, the empty states (no module / component found), and the button and hint texts in the settings and HUD editor panels — 16 `.svelte` files in total.
+   - Localized the ClickGUI interface strings — the search box placeholder, the empty states (no module / component found), and the button and hint texts in the settings and HUD editor panels.
+     **16 `.svelte` files contain Chinese literals**; a 17th (`Panel.svelte`) only adds a display-layer category mapping call and contains no literal text itself.
    - **Bind action display**: `Toggle` / `Hold` / `Smart` in `SwitchBindAction.svelte` are mapped at the display layer to `切换` / `按住` / `智能` (Switch / Hold / Smart);
      their **stored values remain English**, because those values are persistent enums (`BindAction`) written to the config file — translating them would break the type contract and invalidate already-saved binds.
-2. **Language file completion** — `src/main/resources/resources/liquidbounce/lang/zh_cn.json`
-   - Compared with the upstream baseline, 2 missing keys were filled in, and 9 values that were identical to `en_us.json` (i.e. untranslated) were translated;
-   - This maintenance round filled in `liquidbounce.module.spearKill.description`, bringing **zh_cn key coverage of en_us to 100%** (796 / 796).
-   - 5 values are still deliberately kept in English (such as `ID: %s`, `TPS: %s`, `#%s %s [%s] %s`); they contain only placeholders or generic abbreviations.
+2. **Language file rebuild** — `src/main/resources/resources/liquidbounce/lang/zh_cn.json`
+   - Upstream 0.40.1 rewrote the whole command system (Brigadier DSL) and changed the language key format accordingly: old keys carried explicit `.subcommand.` / `.result.` / `.parameter.` segments, new keys drop them
+     (`.friend list result noFriends` → `.friend.list.noFriends`). The previous `zh_cn.json` therefore had **370 orphaned command keys** that could no longer match anything.
+   - This round **removed all 370 orphan keys and added all 382 upstream keys the file did not cover**, so `zh_cn.json` now has exactly the same **808 keys as `en_us.json`, in the same order** (100% coverage).
+     Translation memory was preserved: 425 values kept the branch's own wording, 222 were re-keyed from the old format, 70 were newly translated (the Add-on and Marketplace/Config surfaces and a few strings upstream itself left in English), 3 are the branch's own clearer phrasings and 88 come from upstream's `zh_cn.json`.
+   - Upstream ships `scripts/verify-i18n.mjs` to check a translation against `en_us.json` (missing keys, extra keys, placeholder-count mismatches). `node scripts/verify-i18n.mjs` reports **`OK zh_cn 0 issue(s)`**.
 3. **Note**: setting value names (such as `Scale`, `GridSize`) and identifiers in commands/config files **are intentionally kept in English** — changing them would break commands and config files.
    The same rule applies to the bind action values above, and it is a hard convention of this branch.
 
@@ -66,10 +68,10 @@ Requirements:
 
 ```bash
 ./gradlew build      # full build
-./gradlew test       # tests only (254 test cases)
+./gradlew test       # tests only (394 test cases)
 ```
 
-Build artifact: `build/libs/liquidbounce-0.39.1.jar`
+Build artifact: `build/libs/liquidbounce-0.40.1.jar`
 
 Notes:
 
@@ -77,13 +79,14 @@ Notes:
 - ClickGUI is a web frontend (Vite + Svelte); the first build runs `npm ci` + `npm run build` automatically and requires network access;
 - To skip rebuilding the theme, you can change only `src-theme/src` and then run `./gradlew build` again;
 - The first build needs to download Minecraft 26.2, mappings and the full dependency graph, which takes a long time (about 17 minutes measured locally);
-- The frontend type check `npx svelte-check` (run under `src-theme/`) **currently reports 18 pre-existing errors**, all under
-  `src-theme/src/routes/hud/elements/**` (`Hud*Settings` types not generated). These files are identical to the upstream baseline
-  and are pre-existing upstream issues; they do not affect `vite build`.
+- The frontend type check `npx svelte-check` (run under `src-theme/`) **currently reports 21 errors in 7 files** (0 warnings):
+  18 pre-existing ones under `src-theme/src/routes/hud/elements/**` (`Hud*Settings` types not generated, identical to upstream), plus
+  3 in `src-theme/src/routes/menu/common/modal/Tabs.svelte` introduced by upstream 0.40.1 itself (that file is byte-identical to upstream).
+  Both groups are pre-existing upstream issues and do not affect `vite build`.
 
 ## 📦 Installation & Usage
 
-1. Put `liquidbounce-0.39.1.jar` into the `mods` folder of your Fabric client (MC 26.2; Fabric API and fabric-language-kotlin are required);
+1. Put `liquidbounce-0.40.1.jar` into the `mods` folder of your Fabric client (MC 26.2; Fabric API and fabric-language-kotlin are required);
 2. In game, run `/client language set zh_cn`, or simply set the game language to Simplified Chinese (AUTO follows it automatically);
 3. Press **Right Shift** to open the ClickGUI — categories, module names and interface texts are all in Chinese.
 
@@ -93,6 +96,8 @@ Notes:
   These are config/command identifiers; changing them would break commands and saved configs, so the localized build deliberately keeps them in English.
 - **Want to go back to vanilla?**
   Use the official upstream jar directly, or restore the files this branch modified (the change list is in "Changes in This Branch" above).
+- **Why did my old command translations stop working after 0.40.1?**
+  Upstream rewrote the command system in 0.40.1 and the language key format changed; this branch re-keyed all of them, so simply use the `zh_cn.json` shipped here and do not copy an old one over it.
 - **How do I turn off ClientChat (client chat / IRC)?**
   ClickGUI → Settings → ClientChat → turn Enabled off; or run `.value set ClientChat.Enabled false`.
 
