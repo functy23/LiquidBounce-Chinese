@@ -173,7 +173,7 @@
                         literal={true}
                 />
             {:else}
-                <span>Press any key...</span>
+                <span>按下任意键…</span>
             {/if}
         </span>
     </button>

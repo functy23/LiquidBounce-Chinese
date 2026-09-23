@@ -25,7 +25,7 @@
 </script>
 
 <ScaledClickGuiContent>
-    <WindowPanel title="Global Settings" icon="client">
+    <WindowPanel title="全局设置" icon="client">
         <div class="settings-grid">
             {#if globalSettings}
                 {#each globalSettings.value as _, i (globalSettings.value[i].name)}

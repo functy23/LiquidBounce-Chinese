@@ -7,6 +7,21 @@
     export let chosen: typeof choices[number];
     export let onchange: () => any;
 
+    /**
+     * Display-only Chinese labels for {@link BindAction}.
+     *
+     * `chosen` itself MUST stay in English: it is the persisted setting value
+     * that the client writes to the config file and matches against
+     * `BindAction`. Translating the value breaks the type contract and
+     * silently corrupts saved binds, so the localization lives here, at the
+     * render layer only.
+     */
+    const actionLabels: Record<BindAction, string> = {
+        Toggle: "切换",
+        Hold: "按住",
+        Smart: "智能",
+    };
+
     let jiggle = 0;
 
     /**
@@ -38,7 +53,7 @@
                     class="chosen"
                     in:fly={{ x: 5, duration: 100, delay: 100, easing: cubicOut }}
                     out:fly={{ x: -5, duration: 100, easing: cubicOut }}
-            >{chosen}</span>
+            >{actionLabels[chosen] ?? chosen}</span>
         {/key}
     </span>
 

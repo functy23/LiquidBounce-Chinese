@@ -60,11 +60,11 @@
 <svelte:window onclick={handleWindowClick}/>
 
 <div class="component-drawer" bind:this={drawerElement}>
-    <button class="button-toggle-drawer" onclick={toggleDrawer}>Add Component</button>
+    <button class="button-toggle-drawer" onclick={toggleDrawer}>添加组件</button>
 
     {#if drawerShown}
         <div class="drawer" transition:fly={{ y: -10, duration: 200 }}>
-            <input bind:this={searchInput} type="text" class="input-search" placeholder="Search" bind:value={query}
+            <input bind:this={searchInput} type="text" class="input-search" placeholder="搜索" bind:value={query}
                    oninput={handleSearch}>
 
             <div class="component-list">
@@ -73,7 +73,7 @@
                         <DrawerHudComponent component={c} onselect={handleAddComponent}/>
                     {/each}
                 {:else}
-                    <span class="no-results">No components found</span>
+                    <span class="no-results">没有找到组件</span>
                 {/if}
             </div>
         </div>

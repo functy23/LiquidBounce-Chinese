@@ -90,12 +90,12 @@
             <div class="name">{$spaceSeperatedNames ? convertToSpacedString(cSetting.name) : cSetting.name}:</div>
 
             {#if cSetting.value === UNKNOWN_KEY}
-                <span class="none">None</span>
+                <span class="none">无</span>
             {:else}
                 <span>{printableKeyName}</span>
             {/if}
         {:else}
-            <span>Press any key</span>
+            <span>按下任意键</span>
         {/if}
     </button>
 </div>

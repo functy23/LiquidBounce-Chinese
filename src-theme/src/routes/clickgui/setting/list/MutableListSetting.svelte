@@ -30,7 +30,7 @@
 
 <div class="setting">
     <div class="name">{$spaceSeperatedNames ? convertToSpacedString(cSetting.name) : cSetting.name}</div>
-    <SettingButton value="Add value" on:click={addValueIndex} />
+    <SettingButton value="添加值" on:click={addValueIndex} />
     {#if cSetting.value.length > 0}
         <div class="inputs">
             {#each cSetting.value as _, index}

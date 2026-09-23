@@ -18,7 +18,7 @@
 </script>
 
 <div class="list-item-list">
-    <input type="text" placeholder="Search" class="search-input" bind:value={searchQuery} spellcheck="false">
+    <input type="text" placeholder="搜索" class="search-input" bind:value={searchQuery} spellcheck="false">
     <div class="results">
         <VirtualList items={renderedItems} let:item>
             <slot item={item} />
