@@ -16,19 +16,21 @@
  * You should have received a copy of the GNU General Public License
  * along with LiquidBounce. If not, see <https://www.gnu.org/licenses/>.
  */
+package net.ccbluex.liquidbounce.integration.backend
 
-package net.ccbluex.liquidbounce.injection.mixins.minecraft.render;
+import net.ccbluex.liquidbounce.features.addon.AddonApi
 
-import com.mojang.blaze3d.vertex.VertexConsumer;
-import net.minecraft.client.renderer.feature.RenderTypeFeatureRenderer;
-import net.minecraft.client.renderer.rendertype.RenderType;
-import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
-
-@Mixin(RenderTypeFeatureRenderer.class)
-public abstract class MixinRenderTypeFeatureRenderer {
-
-    @Shadow
-    protected abstract VertexConsumer getVertexBuilder(RenderType renderType);
-
-}
+/**
+ * A browser engine to render the client's pages with.
+ *
+ * @param id Matches `LB_BROWSER_BACKEND` and the saved choice.
+ * @param selectable False to offer it only through `LB_BROWSER_BACKEND`.
+ */
+@AddonApi
+class BrowserBackendProvider @JvmOverloads constructor(
+    val id: String,
+    val name: String,
+    val description: String,
+    val selectable: Boolean = true,
+    val create: () -> BrowserBackend,
+)

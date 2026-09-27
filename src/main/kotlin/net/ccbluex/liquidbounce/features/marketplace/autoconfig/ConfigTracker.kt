@@ -19,6 +19,7 @@
 package net.ccbluex.liquidbounce.features.marketplace.autoconfig
 
 import com.google.gson.JsonObject
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -29,7 +30,6 @@ import net.ccbluex.liquidbounce.api.core.HttpClient
 import net.ccbluex.liquidbounce.api.models.auth.OAuthSession
 import net.ccbluex.liquidbounce.api.models.marketplace.MarketplaceItem
 import net.ccbluex.liquidbounce.api.models.marketplace.MarketplaceItemRevision
-import net.ccbluex.liquidbounce.api.models.marketplace.MarketplaceItemStatus
 import net.ccbluex.liquidbounce.api.models.marketplace.MarketplaceItemType
 import net.ccbluex.liquidbounce.api.models.marketplace.MarketplaceItemVisibility
 import net.ccbluex.liquidbounce.api.services.marketplace.MarketplaceApi
@@ -47,9 +47,12 @@ import net.ccbluex.liquidbounce.event.events.RefreshArrayListEvent
 import net.ccbluex.liquidbounce.event.events.ValueChangedEvent
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.features.marketplace.MarketplaceManager
+import net.ccbluex.liquidbounce.features.marketplace.Unavailable
+import net.ccbluex.liquidbounce.features.marketplace.dependenciesOf
+import net.ccbluex.liquidbounce.features.marketplace.installDependencies
+import net.ccbluex.liquidbounce.features.marketplace.installNeedsRestart
 import net.ccbluex.liquidbounce.features.module.ModuleManager
 import net.ccbluex.liquidbounce.features.spoofer.SpooferManager
-import net.ccbluex.liquidbounce.utils.kotlin.MinecraftDispatcher
 import java.io.File
 import java.security.MessageDigest
 
@@ -63,6 +66,8 @@ import java.security.MessageDigest
  * A config's config dependencies are applied before it, depth-first in their order, and
  * its add-on and script dependencies are installed. The settings after the dependencies are
  * its base: an overlay only publishes what differs from it.
+ *
+ * Loading a local config over it stops tracking, unless the local config was saved from it; see [loadedLocal].
  */
 @Suppress("TooManyFunctions")
 object ConfigTracker : Config("MarketplaceConfig"), EventListener {
@@ -76,9 +81,14 @@ object ConfigTracker : Config("MarketplaceConfig"), EventListener {
     data class Step(val itemId: Int, val revisionId: Int)
 
     /**
-     * Dependencies [load] installed; [restartRequired] when one only works after a restart.
+     * Dependencies [load] installed; [restartRequired] when one only works after a restart. [unavailable]
+     * are the ones left out since they or what they need do not load with this game.
      */
-    data class LoadResult(val installed: List<MarketplaceItem>, val restartRequired: Boolean)
+    data class LoadResult(
+        val installed: List<MarketplaceItem>,
+        val restartRequired: Boolean,
+        val unavailable: List<Unavailable>
+    )
 
     var state by enumChoice("State", State.NONE)
         private set
@@ -92,6 +102,13 @@ object ConfigTracker : Config("MarketplaceConfig"), EventListener {
         private set
     var revisionId by int("RevisionId", 0, 0..Int.MAX_VALUE)
         private set
+
+    /**
+     * The local config that last replaced the settings, until a marketplace config does.
+     */
+    var localName by text("LocalName", "")
+        private set
+
     private var backupName by text("BackupName", "")
     private var chainText by text("Chain", "")
     private var baseText by text("Base", "")
@@ -153,12 +170,12 @@ object ConfigTracker : Config("MarketplaceConfig"), EventListener {
         revisionId: Int,
         modules: Collection<ValueGroup> = emptyList()
     ): LoadResult {
-        val dependencies = resolve(item.id)
-        val installed = install(dependencies.installables)
-        val chain = dependencies.configs
+        val dependencies = dependenciesOf(item.id)
+        val (installed, unavailable) = installDependencies(dependencies.installables)
+        val chain = dependencies.configs.map { Step(it.item.id, it.revision.id) }
         val configs = (chain + Step(item.id, revisionId)).map { readConfig(revisionFile(it.itemId, it.revisionId)) }
 
-        withContext(MinecraftDispatcher) {
+        withContext(Dispatchers.Main) {
             val base = apply(configs, modules)
 
             if (modules.isNotEmpty()) {
@@ -176,15 +193,14 @@ object ConfigTracker : Config("MarketplaceConfig"), EventListener {
                 baseText = base?.let(::encodeHashes).orEmpty()
                 baselineText = encodeHashes(snapshot())
                 state = State.TRACKED
+                localName = ""
             }
         }
 
         return LoadResult(
             installed,
-            installed.any {
-                it.type == MarketplaceItemType.ADDON ||
-                    it.type == MarketplaceItemType.SCRIPT && !MarketplaceManager.hasHandler(it.type)
-            }
+            installed.any { it.installNeedsRestart },
+            unavailable
         )
     }
 
@@ -195,7 +211,7 @@ object ConfigTracker : Config("MarketplaceConfig"), EventListener {
     suspend fun loadExternal(source: String, modules: Collection<ValueGroup> = emptyList()) {
         val config = publicGson.newJsonReader(source.reader()).use { it.parseTree().asJsonObject }
 
-        withContext(MinecraftDispatcher) {
+        withContext(Dispatchers.Main) {
             apply(listOf(config), modules)
 
             if (modules.isNotEmpty()) {
@@ -207,13 +223,39 @@ object ConfigTracker : Config("MarketplaceConfig"), EventListener {
     }
 
     /**
+     * Id of the tracked config, which a local config saved now keeps as its origin.
+     */
+    val trackedItemId get() = itemId.takeIf { state != State.NONE }
+
+    /**
+     * Settings of the local config [name] were applied, only some modules of it when [partial]. A partial load,
+     * or one of a config saved from the tracked one ([origin] is its [trackedItemId]), goes on as edits of the
+     * tracked config. Any other replaces it: tracking stops, the backup stays.
+     *
+     * @return the address of the config no longer tracked, if any
+     */
+    fun loadedLocal(name: String, origin: Int?, partial: Boolean): String? {
+        if (partial || state != State.NONE && origin == itemId) {
+            recheck()
+            return null
+        }
+
+        val untracked = address.takeIf { state != State.NONE }
+        updateTracking {
+            clearItem()
+            localName = name
+        }
+        return untracked
+    }
+
+    /**
      * Re-applies the tracked revision and its config dependencies, dropping local edits.
      */
     suspend fun revert() {
         check(state != State.NONE) { "No tracked config" }
 
         val configs = (chain + Step(itemId, revisionId)).map { readConfig(revisionFile(it.itemId, it.revisionId)) }
-        withContext(MinecraftDispatcher) {
+        withContext(Dispatchers.Main) {
             apply(configs, emptyList())
             updateTracking {
                 baselineText = encodeHashes(snapshot())
@@ -225,7 +267,7 @@ object ConfigTracker : Config("MarketplaceConfig"), EventListener {
     /**
      * Returns to the settings from before the first marketplace load.
      */
-    suspend fun restoreBackup() = withContext(MinecraftDispatcher) {
+    suspend fun restoreBackup() = withContext(Dispatchers.Main) {
         check(hasBackup) { "No backup to restore" }
 
         val name = backupName
@@ -241,7 +283,7 @@ object ConfigTracker : Config("MarketplaceConfig"), EventListener {
     /**
      * Keeps the current settings and stops tracking.
      */
-    suspend fun detach() = withContext(MinecraftDispatcher) {
+    suspend fun detach() = withContext(Dispatchers.Main) {
         if (hasBackup) {
             backupFile(backupName).delete()
         }
@@ -259,7 +301,7 @@ object ConfigTracker : Config("MarketplaceConfig"), EventListener {
     ): MarketplaceItem {
         val (item, revision) = publish(session, name, description, details, null) { }
 
-        withContext(MinecraftDispatcher) {
+        withContext(Dispatchers.Main) {
             track(item, revision, emptyList(), null)
         }
         return item
@@ -308,10 +350,10 @@ object ConfigTracker : Config("MarketplaceConfig"), EventListener {
             name,
             description,
             MarketplaceApi.ItemDetails(visibility = visibility),
-            withContext(MinecraftDispatcher) { changedSince(base) }
+            withContext(Dispatchers.Main) { changedSince(base) }
         ) { item -> MarketplaceApi.addItemDependency(session, item.id, baseId) }
 
-        withContext(MinecraftDispatcher) {
+        withContext(Dispatchers.Main) {
             track(item, revision, chain, base)
         }
         return item
@@ -325,12 +367,12 @@ object ConfigTracker : Config("MarketplaceConfig"), EventListener {
         check(state == State.EDITING) { "Not editing a config" }
 
         val subset = if (hasBase) {
-            withContext(MinecraftDispatcher) { changedSince(decodeHashes(baseText)) }
+            withContext(Dispatchers.Main) { changedSince(decodeHashes(baseText)) }
         } else {
             null
         }
         val revision = uploadSettings(session, itemId, changelog, subset)
-        withContext(MinecraftDispatcher) {
+        withContext(Dispatchers.Main) {
             updateTracking {
                 revisionId = revision.id
                 baselineText = encodeHashes(snapshot())
@@ -354,59 +396,6 @@ object ConfigTracker : Config("MarketplaceConfig"), EventListener {
         MarketplaceManager.marketplaceRoot.resolve("configs/$id").deleteRecursively()
         detach()
     }
-
-    private class Dependencies(val configs: List<Step>, val installables: Collection<MarketplaceItem>)
-
-    /**
-     * Walks the dependencies of [rootId] depth-first. Config dependencies come out in the order
-     * they are applied; installables pull in what they need themselves.
-     */
-    private suspend fun resolve(rootId: Int): Dependencies {
-        val configs = mutableListOf<Step>()
-        val installables = linkedMapOf<Int, MarketplaceItem>()
-        val visiting = hashSetOf<Int>()
-        val done = hashSetOf<Int>()
-
-        suspend fun visit(id: Int) {
-            if (id in done || !visiting.add(id)) {
-                return
-            }
-
-            for (dependency in MarketplaceApi.getItemDependencies(id)) {
-                val item = dependency.item
-                when (item.type) {
-                    MarketplaceItemType.CONFIG -> {
-                        visit(item.id)
-                        val revision = dependency.liveRevision
-                            ?: error("Config dependency ${item.name} has nothing published")
-                        if (configs.none { it.itemId == item.id }) {
-                            configs += Step(item.id, revision.id)
-                        }
-                    }
-
-                    MarketplaceItemType.ADDON, MarketplaceItemType.SCRIPT -> {
-                        installables.putIfAbsent(item.id, item)
-                        visit(item.id)
-                    }
-
-                    else -> {}
-                }
-            }
-
-            visiting.remove(id)
-            done += id
-        }
-
-        visit(rootId)
-        return Dependencies(configs, installables.values)
-    }
-
-    private suspend fun install(items: Collection<MarketplaceItem>): List<MarketplaceItem> =
-        items.filter { item ->
-            !MarketplaceManager.isSubscribed(item.id) && item.status == MarketplaceItemStatus.ACTIVE
-        }.onEach { item ->
-            MarketplaceManager.subscribe(item)
-        }
 
     /**
      * Creates the item, runs [link] on it and uploads the settings (only [subset] when given). A
@@ -453,6 +442,7 @@ object ConfigTracker : Config("MarketplaceConfig"), EventListener {
         baseText = base?.let(::encodeHashes).orEmpty()
         baselineText = encodeHashes(snapshot())
         state = State.TRACKED
+        localName = ""
     }
 
     private class Subset(val modules: Set<String>, val spoofers: Boolean)
@@ -470,7 +460,7 @@ object ConfigTracker : Config("MarketplaceConfig"), EventListener {
     ): MarketplaceItemRevision {
         val file = File.createTempFile("marketplace_config", ".json")
         try {
-            withContext(MinecraftDispatcher) {
+            withContext(Dispatchers.Main) {
                 file.bufferedWriter().use { writer ->
                     if (subset == null) {
                         AutoConfig.serializeAutoConfig(writer)
@@ -595,6 +585,7 @@ object ConfigTracker : Config("MarketplaceConfig"), EventListener {
 
     private fun clearItem() {
         state = State.NONE
+        localName = ""
         itemId = 0
         itemName = ""
         itemUid = ""

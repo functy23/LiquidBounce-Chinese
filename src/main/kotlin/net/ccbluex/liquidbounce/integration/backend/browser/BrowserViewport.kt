@@ -19,6 +19,7 @@
 
 package net.ccbluex.liquidbounce.integration.backend.browser
 
+import net.ccbluex.liquidbounce.features.addon.AddonApi
 import net.ccbluex.liquidbounce.utils.client.mc
 import org.joml.Vector2d
 import org.joml.Vector2dc
@@ -30,6 +31,7 @@ import kotlin.math.ln
  * Represents a browser viewport with position, dimensions and rendering quality utilities
  */
 @JvmRecord
+@AddonApi
 data class BrowserViewport(
     val x: Int,
     val y: Int,
@@ -67,17 +69,16 @@ data class BrowserViewport(
     fun transformMouse(mouseX: Double, mouseY: Double, quality: Float): Vector2ic =
         Vector2i((mouseX * quality).toInt(), (mouseY * quality).toInt())
 
-    companion object {
+    companion {
         /**
          * Creates a fullscreen viewport matching the current window dimensions
          */
-        val FULLSCREEN
-            get() = BrowserViewport(
-                x = 0,
-                y = 0,
-                width = mc.window.width,
-                height = mc.window.height,
-                fullScreen = true
-            )
+        fun fullscreen() = BrowserViewport(
+            x = 0,
+            y = 0,
+            width = mc.window.width,
+            height = mc.window.height,
+            fullScreen = true
+        )
     }
 }

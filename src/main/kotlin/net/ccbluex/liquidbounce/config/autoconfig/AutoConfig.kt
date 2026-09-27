@@ -23,32 +23,32 @@ import com.google.gson.JsonObject
 import net.ccbluex.liquidbounce.LiquidBounce
 import net.ccbluex.liquidbounce.api.types.enums.AutoSettingsStatusType
 import net.ccbluex.liquidbounce.api.types.enums.AutoSettingsType
-import net.ccbluex.liquidbounce.config.gson.util.obj
-import net.ccbluex.liquidbounce.config.gson.util.string
 import net.ccbluex.liquidbounce.config.ConfigSystem
 import net.ccbluex.liquidbounce.config.ConfigSystem.deserializeValueGroup
 import net.ccbluex.liquidbounce.config.gson.publicGson
+import net.ccbluex.liquidbounce.config.gson.util.obj
 import net.ccbluex.liquidbounce.config.gson.util.parseTree
+import net.ccbluex.liquidbounce.config.gson.util.string
 import net.ccbluex.liquidbounce.config.types.group.ValueGroup
 import net.ccbluex.liquidbounce.event.events.NotificationEvent
 import net.ccbluex.liquidbounce.features.module.ModuleManager
 import net.ccbluex.liquidbounce.features.module.modules.render.ModuleClickGui
 import net.ccbluex.liquidbounce.features.spoofer.SpooferManager
 import net.ccbluex.liquidbounce.utils.client.MessageMetadata
-import net.ccbluex.liquidbounce.utils.text.asPlainText
 import net.ccbluex.liquidbounce.utils.client.chat
-import net.ccbluex.liquidbounce.utils.text.dropPort
 import net.ccbluex.liquidbounce.utils.client.inGame
 import net.ccbluex.liquidbounce.utils.client.markAsError
 import net.ccbluex.liquidbounce.utils.client.mc
 import net.ccbluex.liquidbounce.utils.client.notification
-import net.ccbluex.liquidbounce.utils.text.plus
 import net.ccbluex.liquidbounce.utils.client.protocolVersion
 import net.ccbluex.liquidbounce.utils.client.regular
-import net.ccbluex.liquidbounce.utils.text.rootDomain
 import net.ccbluex.liquidbounce.utils.client.selectProtocolVersion
 import net.ccbluex.liquidbounce.utils.client.usesViaFabricPlus
 import net.ccbluex.liquidbounce.utils.client.variable
+import net.ccbluex.liquidbounce.utils.text.asPlainText
+import net.ccbluex.liquidbounce.utils.text.dropPort
+import net.ccbluex.liquidbounce.utils.text.plus
+import net.ccbluex.liquidbounce.utils.text.rootDomain
 import net.minecraft.ChatFormatting
 import net.minecraft.network.chat.Style
 import java.io.Reader
@@ -233,6 +233,9 @@ object AutoConfig {
      *
      * With [modules] set, only those modules are written, and spoofers only with [includeSpoofers].
      * Loading such a config leaves everything it does not name untouched.
+     *
+     * [marketplaceItemId] is the marketplace config the settings come from, kept so loading them back
+     * can go on tracking it.
      */
     @Suppress("LongParameterList")
     fun serializeAutoConfig(
@@ -241,7 +244,8 @@ object AutoConfig {
         autoSettingsType: AutoSettingsType = AutoSettingsType.RAGE,
         statusType: AutoSettingsStatusType = AutoSettingsStatusType.BYPASSING,
         modules: Collection<String>? = null,
-        includeSpoofers: Boolean = modules == null
+        includeSpoofers: Boolean = modules == null,
+        marketplaceItemId: Int? = null
     ) {
         this.includeConfiguration = includeConfiguration
 
@@ -290,6 +294,7 @@ object AutoConfig {
 
         jsonObject.add("type", publicGson.toJsonTree(autoSettingsType))
         jsonObject.add("status", publicGson.toJsonTree(statusType))
+        marketplaceItemId?.let { jsonObject.addProperty("marketplaceItemId", it) }
 
         publicGson.newJsonWriter(writer).use {
             publicGson.toJson(jsonObject, it)

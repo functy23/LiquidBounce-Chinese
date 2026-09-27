@@ -46,6 +46,7 @@ export const moduleNames: Record<string, string> = {
     AutoFarm: "自动农场",
     AutoFish: "自动钓鱼",
     AutoLeave: "自动退出",
+    AutoMobHeal: "自动治疗生物",
     AutoPearl: "自动末影珍珠",
     AutoQueue: "自动排队",
     AutoRespawn: "自动重生",

@@ -16,24 +16,25 @@ README 为**英文主文档**（`README.md`）+ **中文全量翻译**（`doc/RE
 
 `CCBlueX/LiquidBounce`（水影）的**中文汉化派生仓库**，不是 GitHub fork。
 
-- 上游基线：`adfddc0781d056201037ac16b216cfd3e2df4e4a`（2026-09-23，`mod_version=0.40.1`，上游 `nextgen` 分支 tip）
-- 上一轮基线：`8fc1f12b34c50f483c3b3446c45e8bc1de58e20c`（2026-08-09，`mod_version=0.39.1`）
-- 本仓库历史：第一轮为**单次 squash 提交**（`64243a1`），与上游**没有共同祖先**；
-  当前同步分支 `sync/0.40.1` 改为在上游 tip 之上叠加改动，因此它**是**上游的后代
-- 平台：Fabric · Minecraft `26.2` · JDK `25`
+- 当前上游基线：`f37f07f874dbc1e90807ea85ca0c23a306ec6c4d`（2026-09-27，上游 `nextgen` 分支 tip；`gradle.properties` 里 `mod_version` 仍是 `0.40.1`）
+- 上一轮基线：`adfddc0781d056201037ac16b216cfd3e2df4e4a`（2026-09-23，`0.40.1` 线）；
+  再上一轮：`8fc1f12b34c50f483c3b3446c45e8bc1de58e20c`（2026-08-09，`mod_version=0.39.1`）
+- 本仓库的**首个**提交（`64243a1`）是单次 squash，与上游**没有共同祖先**；因此 `origin/main` 那条线
+  **至今**仍是孤儿历史。自 `sync/0.40.1` 起，同步分支一律以 `upstream/nextgen` 为父提交，是上游的后代
+- 平台：Fabric · Minecraft `26.3`（mod 声明 `>26.2 <26.4`）· JDK `25`
 
 ### 同步上游时的关键约束
 
-旧分支（`maintenance/2026-09-12-localization-and-docs`、`origin/main`）与上游**没有共同祖先**，
-`git merge upstream/nextgen` 会直接失败：
+`origin/main` 及其后代分支（如 `maintenance/2026-09-12-localization-and-docs`）与上游**没有共同祖先**，
+在这些分支上 `git merge upstream/nextgen` 会直接失败：
 
 ```
 fatal: refusing to merge unrelated histories
 ```
 
 即使加上 `--allow-unrelated-histories`，git 也会把全部约 2300+ 个文件视为 add/add 冲突
-（上一轮基线 `8fc1f12` 有 2293 个文件，上游 tip `adfddc078` 有 2377 个）——
-**`git merge` 在这个仓库里不是正确的同步手段。**
+（`8fc1f12` 有 2293 个文件，`adfddc078` 有 2377 个，`f37f07f8` 有 2378 个）——
+**在孤儿历史上 `git merge` 不是正确的同步手段。**（已以 `upstream/nextgen` 为父的 `sync/*` 分支不受此限。）
 
 正确做法是三方应用（3-way apply）：把本仓库相对基线的改动面重新应用到新的上游基线上。
 
@@ -43,8 +44,10 @@ git checkout -b sync/<新版本> upstream/nextgen   # 基于上游 tip，历史�
 git apply -3 /tmp/l10n.patch                     # 用 blob 做三方合并
 ```
 
-`git apply -3` 只在真正重叠处留冲突标记（本轮 24 个文件里只有 2 个留标记：
-`gradlew.bat` 与 `zh_cn.json`），其余自动合并。冲突逐个手工解决后 `git add`。
+`git apply -3` 只在真正重叠处留冲突标记（0.40.1 那轮 24 个文件里只有 2 个留标记：
+`gradlew.bat` 与 `zh_cn.json`；0.40.2 那轮的补丁（`git diff adfddc078 <上一汉化分支>`）20 个文件
+**全部干净应用、零冲突标记**），其余自动合并。冲突逐个手工解决后 `git add`。
+合入 main 用 `git merge --no-ff <sync 分支>`：此时 `-X theirs` 是安全的，因为 sync 分支已含全部上游代码。
 识别基线的方法：用未被汉化改动的文件（如 `build.gradle.kts`、`settings.gradle.kts`、`flake.nix`）的
 blob hash 去上游历史中反查。
 
@@ -82,6 +85,10 @@ node scripts/verify-i18n.mjs --json     # 机器可读
 因为本仓库要求 zh_cn 与 en_us 严格 1:1，这个键无法出现在 zh_cn 中，该模式下会直接显示原始键名。
 不要为了它破坏 1:1（`verify-i18n.mjs` 会把额外键算作 issue）。
 
+**同步上游后必须重查键集合。** 0.40.2 时上游新增了 15 个键（地图渲染命令 `command.map_image.*`、
+市场按名称操作的 `command.marketplace.*`、`command.localconfig.load.untracked` 等），
+且**键顺序与 en_us 的字母序一致**；补键时插到与 en_us 相同的位置，否则顺序比对会失败。
+
 **翻译值时不要动占位符数量。** 上游重写命令系统时改了若干字符串的占位符
 （例：`liquidbounce.command.client.config.backup.failedToBackup` 由 `Backup failed: %s`
 变成只剩 `%s`，`...value.set.success` 由 2 个参数变成 1 个），沿用旧译文的占位符会渲染出多余/缺失的参数。
@@ -91,8 +98,8 @@ node scripts/verify-i18n.mjs --json     # 机器可读
 ```bash
 export JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-25.jdk/Contents/Home   # 必须 JDK 25
 
-./gradlew test                 # 394 个测试（0.39.1 时代为 254），本机实测全绿
-./gradlew build                # 完整构建，产物 build/libs/liquidbounce-0.40.1.jar
+./gradlew test                 # 433 个测试（0.39.1 时代 254，0.40.1 时代 394），本机实测全绿
+./gradlew build                # 完整构建，产物 build/libs/liquidbounce-0.40.2.jar
 ```
 
 前端主题（`src-theme/`）：
@@ -109,11 +116,13 @@ npx svelte-check --tsconfig ./tsconfig.json   # 类型检查
 - **`JAVA_HOME` 必须显式指定 JDK 25。** 本机默认 `java` 恰好是 25，但 `JAVA_HOME` 为空；
   若环境里存在其他 JDK（本机装有 17/21/25），不显式设置会在构建中报出难以定位的错误。
 - **首次构建耗时很长（本机约 17 分钟）**：Gradle wrapper 9.6.1 需要下载，之后 Fabric Loom
-  还要拉取 Minecraft 26.2、映射与完整依赖图（`~/.gradle/caches/fabric-loom/26.2/`）。
+  还要拉取 Minecraft 版本、映射与完整依赖图（`~/.gradle/caches/fabric-loom/<mc 版本>/`）。
   构建「卡住」时先看 `~/.gradle/caches` 是否有新文件，再判断是否真的挂死。
+- **换 Minecraft 版本会重跑整套 Loom 准备**（26.3 实测：下载 client/server/merged jar 后还要重映射，
+  日志停在 `> Configure project :` 后约 10 分钟没有任何任务输出，属正常，别误判为挂死）。
 - **`svelte-check` 当前有 21 个报错**（327 个文件，0 warning）：
   - 18 个既有报错，全部在 `src-theme/src/routes/hud/elements/**`（`Hud*Settings` 类型未生成）；
-  - 3 个是上游 0.40.1 在 `src-theme/src/routes/menu/common/modal/Tabs.svelte` 引入的
+  - 3 个是上游在 `src-theme/src/routes/menu/common/modal/Tabs.svelte` 引入的
     （该文件本仓库逐字节等于上游，改动来自上游 `64f9c02c`，与本仓库无关）。
   - 两类都**不影响 `vite build`**（构建成功）。不要把它们误判为本次改动引入，也不要顺手「修」。
 - `./gradlew test` 走的是 Fabric Knot classloader 的无头测试环境，**不需要启动 Minecraft 客户端**。
@@ -121,11 +130,19 @@ npx svelte-check --tsconfig ./tsconfig.json   # 类型检查
   （且 workflow 只在 `nextgen` 分支的 push/PR 上触发）。**测试全绿必须本地验证**，不能依赖 CI。
 - `./gradlew test` 在源码未变时会报 `UP-TO-DATE` 而跳过实际执行；需要真实重跑时用
   `./gradlew test --rerun-tasks`。核对是否真跑过，看 `build/test-results/test/*.xml` 的时间戳。
-- **0.40.1 实测基线**：`./gradlew test --rerun-tasks`（JDK 25）`BUILD SUCCESSFUL in 13m`，
-  **394 个用例 / 0 失败 / 0 错误 / 0 跳过**（64 个测试类；数字取自 `build/test-results/test/*.xml`
-  与 `build/reports/tests/test/index.html`）。`src/test` 里的 `@Test` 计数同样是 394。
+- **0.40.2 实测基线**：`./gradlew build`（JDK 25，含 `:test`）`BUILD SUCCESSFUL in 11m 37s`，
+  **433 个用例 / 0 失败 / 0 错误 / 4 跳过**（68 个测试类；数字取自 `build/test-results/test/*.xml`）。
+  （0.40.1 时代为 394 个用例 / 64 个类，0.39.1 时代为 254。）
 - `build.gradle.kts` 会调用 `node --version` 与 `npm --version` 来决定 node/npm 版本输入，
   所以 `node`/`npm` 必须在 `PATH` 里，否则配置阶段就失败。
+  （本机 node/npm 装在 `/opt/homebrew/bin`，而 DSH 的 bash 默认 `PATH=/usr/bin:/bin:/usr/sbin:/sbin`，
+  所以要么 `export PATH=/opt/homebrew/bin:$PATH`，要么 Gradle 会去 `.dsh` 里自己下载一套 node。）
+- **发布产物是仓库根 `build/libs/zip/` 下的那个 jar**（任务 `copyZipInclude` 只往里塞
+  README.txt/URL/License，不会覆盖 jar）。发布时按上游 nightly 的形态打包：
+  `cp build/libs/liquidbounce-<版本>.jar build/libs/zip/liquidbounce.jar && (cd build/libs/zip && zip -r liquidbounce.zip .)`，
+  得到的 `liquidbounce.zip` 里含 `liquidbounce.jar` + 安装说明 + 许可证。
+- **功能改动要出 jar 时**：只改 `src-theme/src` 的话，`./gradlew build` 会因 `:jar UP-TO-DATE` 而不重打；
+  这时用 `./gradlew jar --rerun-tasks`（约 40 秒）强制重打包。
 
 ## 硬性约定
 
@@ -138,7 +155,8 @@ npx svelte-check --tsconfig ./tsconfig.json   # 类型检查
 2. **汉化只改显示层文件。** `localization.ts` 是模块名/分类名的唯一映射源；
    新增模块时必须同步补进 `moduleNames`，否则该模块在 ClickGUI 中显示英文原名。
 3. **`zh_cn.json` 与 `en_us.json` 的键必须一一对应。** 新增语言键时两个文件都要加。
-   当前 zh_cn 对 en_us 的覆盖率为 100%（808/808），且键顺序与 en_us 完全一致。
+   当前 zh_cn 对 en_us 的覆盖率为 100%（818/818），且键顺序与 en_us 完全一致。
+   同步上游后重跑一遍：0.40.2 时上游新增 15 个键、删改若干，补齐后仍是 818/818。
    核对命令：`node scripts/verify-i18n.mjs`（`zh_cn` 行必须是 `OK`）。
 4. **改 README 前先数一遍。** 本仓库的 README 曾出现「翻译 14 个值」（实际 9 个）、
    「汉化 16 处文案」但列举了从未改动的「窗口标题」「打开」等不实声明。
@@ -152,8 +170,8 @@ npx svelte-check --tsconfig ./tsconfig.json   # 类型检查
 | `src/main/java/` | Mixin 注入 |
 | `src/main/resources/resources/liquidbounce/lang/` | 各语言文件，含 `zh_cn.json` |
 | `src-theme/src/routes/clickgui/` | ClickGUI 前端（Svelte），汉化主要集中在此 |
-| `src-theme/src/routes/clickgui/localization.ts` | 模块名/分类名中文映射（唯一来源，240 个模块 + 8 个分类） |
-| `src/test/kotlin/` | 测试（394 个用例；0.40.1 随命令系统重写新增了一批 Brigadier DSL 测试） |
+| `src-theme/src/routes/clickgui/localization.ts` | 模块名/分类名中文映射（唯一来源，241 个模块 + 8 个分类） |
+| `src/test/kotlin/` | 测试（433 个用例；0.40.1 随命令系统重写、0.40.2 随上游新增测试各增一批） |
 | `scripts/verify-i18n.mjs` | 上游语言文件校验脚本（与上游一致，未改动） |
 | `gradle/libs.versions.toml` | 依赖版本目录 |
 | `buildSrc/` | 构建逻辑 |

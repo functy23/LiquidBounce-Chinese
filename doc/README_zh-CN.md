@@ -5,12 +5,12 @@
 
 # 🀄 LiquidBounce 中文汉化版
 
-**LiquidBounce（水影）的非官方中文汉化版 —— ClickGUI 与模块名已汉化，Minecraft 26.2 / Fabric。**
+**LiquidBounce（水影）的非官方中文汉化版 —— ClickGUI 与模块名已汉化，Minecraft 26.3 / Fabric。**
 
 [![LiquidBounce-Chinese](https://img.shields.io/badge/LiquidBounce-Chinese-LBC-orange.svg)](https://github.com/functy23/LiquidBounce-Chinese)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0%2B-purple.svg?logo=kotlin&logoColor=white)](https://kotlinlang.org/)
 [![Top Language](https://img.shields.io/github/languages/top/functy23/LiquidBounce-Chinese?style=flat)](https://github.com/functy23/LiquidBounce-Chinese)
-[![Platform](https://img.shields.io/badge/platform-Fabric%20%7C%20Minecraft%2026.2-lightgrey.svg?logo=minecraft&logoColor=white)](https://github.com/functy23/LiquidBounce-Chinese)
+[![Platform](https://img.shields.io/badge/platform-Fabric%20%7C%20Minecraft%2026.3-lightgrey.svg?logo=minecraft&logoColor=white)](https://github.com/functy23/LiquidBounce-Chinese)
 
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue.svg?logo=opensourceinitiative&logoColor=white)](https://opensource.org/licenses/GPL-3.0)
 
@@ -31,7 +31,7 @@
 
 > 基于 [CCBlueX/LiquidBounce](https://github.com/CCBlueX/LiquidBounce) 的**中文汉化修改版**，非官方构建。
 >
-> 分支版本：`0.40.1` · 支持 Minecraft `26.2` · 平台：Fabric
+> 分支版本：`0.40.2` · 面向 Minecraft `26.3`（mod 声明 `>26.2 <26.4`）· 平台：Fabric · JDK `25`
 
 ## ⚠️ 免责声明
 
@@ -40,11 +40,11 @@
 
 ## ✨ 本分支的改动
 
-> 上游基线：`CCBlueX/LiquidBounce` 提交 `adfddc078`（2026-09-23，`mod_version=0.40.1`，`nextgen` 分支）。
+> 上游基线：`CCBlueX/LiquidBounce` 提交 `f37f07f8`（2026-09-27，`nextgen` 分支尖端）；上一轮基线为 `adfddc078`（2026-09-23，即 `0.40.1` 那一条线）。
 
 1. **ClickGUI 界面汉化**
    - 新增 `src-theme/src/routes/clickgui/localization.ts`：**240 个模块名 + 8 个分类名**的中文显示映射（仅显示层，不影响命令/配置标识符）。
-     0.40.1 中声明的 **240 个模块已全部覆盖（覆盖率 100%）**，且没有多余条目：其中 4 个（`AutoDeposit`、`PotionFX`、`TotemEffect`、`TridentBoost`）是本次上游新增，另 2 个（`AutoBuff`、`BetterTitle`）早就在上游存在、只是此前漏译。
+     当前上游声明的 **241 个模块名已全部覆盖（覆盖率 100%）**，且没有多余条目：`AutoMobHeal`（上游 `284a05a2` 新增）此前漏译，0.40.2 已补上。
      该文件由 `Module.svelte`、`Search.svelte`、`Panel.svelte` 引用；未命中的模块名回退显示原名。
    - 汉化 ClickGUI 界面文案：搜索框占位符、空状态（没有找到模块/组件）、以及设置项与 HUD 编辑器面板中的按钮/提示文字。
      **共 16 个 `.svelte` 文件含有中文文案**；第 17 个（`Panel.svelte`）只增加了分类名的显示层映射调用，本身不含文案。
@@ -53,8 +53,9 @@
 2. **语言文件重做** `src/main/resources/resources/liquidbounce/lang/zh_cn.json`
    - 上游在 0.40.1 把命令系统整体重写为 Brigadier DSL，语言键格式随之改变：旧键带 `.subcommand.` / `.result.` / `.parameter.` 段，新键去掉了这些段
      （`.friend list result noFriends` → `.friend.list.noFriends`）。因此旧的 `zh_cn.json` 里有 **370 个再也匹配不到的孤儿命令键**。
-   - 本次**清掉了全部 370 个孤儿键，并补齐了 382 个上游新键**，现在 `zh_cn.json` 与 `en_us.json` 的键**完全相同（各 808 个）且顺序一致**（覆盖率 100%）。
-     译文记忆被保留：425 个值沿用本分支原有译文，222 个由旧格式重新映射而来，70 个为新增翻译（插件系统、市场/配置系统，以及上游自己也没译的若干条目），3 个是本分支更清楚的措辞，88 个取自上游 `zh_cn.json`。
+   - 0.40.1 那轮**清掉了全部 370 个孤儿键，并补齐了 382 个上游新键**，译文记忆得以保留（425 个值沿用本分支原有译文、222 个由旧格式重新映射、70 个为新翻译——插件系统、市场/配置系统，以及上游自己也没译的若干条目——3 个是本分支更清楚的措辞、88 个取自上游 `zh_cn.json`）。
+   - 0.40.2 在同一套流程上重跑：**补齐上游自那以后新增的 15 个键**（地图渲染命令、按名称操作的市场命令、本地配置跟踪），并在上游 `zh_cn.json` 与本分支译法不同的 13 处**保留本分支措辞**。
+     现在 `zh_cn.json` 与 `en_us.json` 的键**完全相同（各 818 个）且顺序一致**（覆盖率 100%，`OK zh_cn 0 issue(s)`）；除 6 个与语言无关的条目（`ID: %s`、`TPS: %s`、`Guilded` 等）外无未翻译项。
    - 上游自带校验脚本 `scripts/verify-i18n.mjs`，以上游 `en_us.json` 为基准检查缺失键、额外键与占位符数量。`node scripts/verify-i18n.mjs` 对 zh_cn 的输出为 **`OK zh_cn 0 issue(s)`**。
 3. **说明**：设置项的值名（如 `Scale`、`GridSize`）以及命令/配置文件中的标识符**有意保留英文**，改动它们会破坏命令与配置文件。
    这条规则同样适用于上文的绑定动作值，是本分支的一条硬性约定。
@@ -71,22 +72,22 @@
 ./gradlew test       # 仅跑测试（394 个用例）
 ```
 
-构建产物：`build/libs/liquidbounce-0.40.1.jar`
+构建产物：`build/libs/liquidbounce-0.40.2.jar`
 
 注意事项：
 
 - 构建任务会读取 git 提交信息（`generateGitProperties`），请确保目录是 git 仓库；
 - ClickGUI 是 Web 前端（Vite + Svelte），首次构建会自动执行 `npm ci` + `npm run build`，需要联网；
 - 想跳过主题重新构建时，可仅修改 `src-theme/src` 后重新执行 `./gradlew build`；
-- 首次构建需要下载 Minecraft 26.2、映射与完整依赖图，耗时较长（本机实测约 17 分钟）；
+- 首次构建需要下载 Minecraft 26.3、映射与完整依赖图，耗时较长（本机实测约 17 分钟）；
 - 前端类型检查 `npx svelte-check`（在 `src-theme/` 下运行）**当前在 7 个文件中报 21 个错误**（0 个 warning）：
   其中 18 个既有报错位于 `src-theme/src/routes/hud/elements/**`（`Hud*Settings` 类型未生成，与上游一致），
-  另 3 个位于 `src-theme/src/routes/menu/common/modal/Tabs.svelte`，是上游 0.40.1 自己引入的（该文件与本仓库上游逐字节一致）。
+  另 3 个位于 `src-theme/src/routes/menu/common/modal/Tabs.svelte`，是上游自己引入的（该文件与本仓库上游逐字节一致）。
   两类都属上游既有问题，不影响 `vite build`。
 
 ## 📦 安装与使用
 
-1. 将 `liquidbounce-0.40.1.jar` 放入 Fabric 客户端的 `mods` 文件夹（MC 26.2，需安装 Fabric API 与 fabric-language-kotlin）；
+1. 将 `liquidbounce.jar`（Release 附件；本机构建产物名为 `liquidbounce-0.40.2.jar`）放入 Fabric 客户端的 `mods` 文件夹（MC 26.3，需安装 Fabric API 与 fabric-language-kotlin）；
 2. 进游戏后执行 `/client language set zh_cn`，或直接把游戏语言设为简体中文（AUTO 会自动跟随）；
 3. 按 **右 Shift** 打开 ClickGUI，分类、模块名与界面文字均为中文。
 

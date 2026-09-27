@@ -17,39 +17,15 @@
  * along with LiquidBounce. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package net.ccbluex.liquidbounce.injection.mixins.minecraft.entity;
+package net.ccbluex.liquidbounce.injection.mixins.authlib;
 
-import net.minecraft.world.phys.Vec3;
-import org.jspecify.annotations.NullMarked;
+import com.mojang.authlib.services.MinecraftServicesDiscoveryService;
+import com.mojang.authlib.services.MinecraftServicesSessionService;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@NullMarked
-@Mixin(targets = "net.minecraft.world.entity.EntityFluidInteraction$Tracker")
-public interface MixinEntityFluidInteractionTrackerAccessor {
-
-    @Accessor("height")
-    double height();
-
-    @Accessor("height")
-    void height(double height);
-
-    @Accessor("eyesInside")
-    boolean eyesInside();
-
-    @Accessor("eyesInside")
-    void eyesInside(boolean eyesInside);
-
-    @Accessor("accumulatedCurrent")
-    Vec3 accumulatedCurrent();
-
-    @Accessor("accumulatedCurrent")
-    void accumulatedCurrent(Vec3 accumulatedCurrent);
-
-    @Accessor("currentCount")
-    int currentCount();
-
-    @Accessor("currentCount")
-    void currentCount(int currentCount);
-
+@Mixin(MinecraftServicesSessionService.class)
+public interface MixinMinecraftServicesSessionServiceAccessor {
+    @Accessor(remap = false)
+    MinecraftServicesDiscoveryService getDiscoveryService();
 }
