@@ -54,7 +54,7 @@ fabric-kotlin = "1.14.1+kotlin.2.4.20"
 
 # Netty, should be sync with game version
 # https://mvnrepository.com/artifact/io.netty/netty-all
-netty = "4.2.16.Final"
+netty = "4.2.18.Final"
 
 # LWJGL
 lwjgl = "3.4.3"
