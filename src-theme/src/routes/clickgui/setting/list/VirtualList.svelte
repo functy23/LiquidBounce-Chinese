@@ -130,7 +130,7 @@
     >
         {#each visible as row (row.index)}
             <svelte-virtual-list-row>
-                <slot item={row.data}>Missing template</slot>
+                <slot item={row.data}>缺少模板</slot>
             </svelte-virtual-list-row>
         {/each}
     </svelte-virtual-list-contents>

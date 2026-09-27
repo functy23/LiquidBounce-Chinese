@@ -13,6 +13,7 @@
     import {setItem} from "../../integration/persistent_storage";
     import {convertToSpacedString, spaceSeperatedNames} from "../../theme/theme_config";
     import {scaleFactor} from "./clickgui_store";
+    import {tModule} from "./localization";
 
     export let name: string;
     export let enabled: boolean;
@@ -121,12 +122,12 @@
             class:enabled
             class:highlight={name === $highlightModuleName}
     >
-        {$spaceSeperatedNames ? convertToSpacedString(name) : name}
+        {tModule(name, $spaceSeperatedNames)}
 
         {#if hasSettings}
             <button
                     class="expand-arrow"
-                    aria-label="Expand settings"
+                    aria-label="展开设置"
                     aria-expanded={expanded}
                     on:click={toggleExpanded}
             >

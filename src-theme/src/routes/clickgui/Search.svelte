@@ -7,6 +7,7 @@
     import {onMount} from "svelte";
     import {convertToSpacedString, spaceSeperatedNames} from "../../theme/theme_config";
     import {isClickGuiScreen} from "../../util/utils";
+    import {tModule} from "./localization";
 
     export let modules: Module[];
 
@@ -171,7 +172,7 @@
     <input
             type="text"
             class="search-input"
-            placeholder="Search"
+            placeholder="搜索"
             spellcheck="false"
             bind:value={query}
             bind:this={searchInputElement}
@@ -196,7 +197,7 @@
                             bind:this={resultElements[index]}
                     >
                         <div class="module-name">
-                            {$spaceSeperatedNames ? convertToSpacedString(name) : name}
+                            {tModule(name, $spaceSeperatedNames)}
                         </div>
                         <div class="aliases">
                             {#if aliases.length > 0}
@@ -206,7 +207,7 @@
                     </div>
                 {/each}
             {:else}
-                <div class="placeholder">No modules found</div>
+                <div class="placeholder">没有找到模块</div>
             {/if}
         </div>
     {/if}

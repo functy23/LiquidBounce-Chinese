@@ -50,7 +50,7 @@
 
         {#if cSetting.value !== ""}
             <button class="button-action" on:click={resetFile}>
-                <img class="icon" src="img/clickgui/icon-reset.svg" alt="reset-file" title="Reset" />
+                <img class="icon" src="img/clickgui/icon-reset.svg" alt="reset-file" title="重置" />
             </button>
 
             <button class="button-action" on:click={() => browsePath(cSetting.value)}>

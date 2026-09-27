@@ -15,6 +15,7 @@
         snappingEnabled
     } from "./clickgui_store";
     import {setItem} from "../../integration/persistent_storage";
+    import {tCategory} from "./localization";
 
     export let category: string;
     export let modules: TModule[];
@@ -225,7 +226,7 @@
                 alt="icon"
                 on:error={showFallbackIcon}
         />
-        <span class="category">{category}</span>
+        <span class="category">{tCategory(category)}</span>
 
         <!-- svelte-ignore a11y_consider_explicit_label -->
         <button class="expand-toggle" on:click={toggleExpanded} bind:this={expandButtonElement}>

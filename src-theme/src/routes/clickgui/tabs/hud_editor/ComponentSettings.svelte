@@ -92,7 +92,7 @@
             <TogglableSetting path="hud.components.{name}.{id}" bind:setting={configurable} on:change={handleSettingChange}>
                 <div class="remove-component" slot="control" let:disable let:label>
                     <button
-                            title="Remove component"
+                            title="移除组件"
                             on:click={disable}
                     >
                         <img src="img/clickgui/icon-cross.svg" alt="">

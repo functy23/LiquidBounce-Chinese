@@ -58,7 +58,7 @@
         {/each}
         <span class="boundKey">{printableKeyName}</span>
     {:else}
-        <span class="dimmed">None</span>
+        <span class="dimmed">无</span>
     {/if}
 </span>
 

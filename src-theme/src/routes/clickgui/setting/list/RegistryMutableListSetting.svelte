@@ -133,7 +133,7 @@
                 {/key}
             </div>
 
-            <SettingButton value={showChooser ? "Cancel" : "Add item"} on:click={() => showChooser = !showChooser}/>
+            <SettingButton value={showChooser ? "取消" : "添加项"} on:click={() => showChooser = !showChooser}/>
 
             {#if showChooser}
                 <div class="list-item-list-wrapper">

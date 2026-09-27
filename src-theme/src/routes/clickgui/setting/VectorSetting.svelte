@@ -48,7 +48,7 @@
             />
         {/each}
         {#if useLocateButton}
-            <button class="locate-btn" on:click={locate} title="Locate">&#x2299;</button>
+            <button class="locate-btn" on:click={locate} title="定位">&#x2299;</button>
         {/if}
     </div>
 </div>

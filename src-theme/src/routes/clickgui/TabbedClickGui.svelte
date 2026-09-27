@@ -20,9 +20,9 @@
     const TAB_KEY = "clickgui.tab";
 
     const tabs = [
-        {title: "ClickGUI", content: ClickGui},
-        {title: "HUD Editor", content: HudEditor},
-        {title: "Settings", content: GlobalSettings},
+        {title: "点击界面", content: ClickGui},
+        {title: "HUD 编辑器", content: HudEditor},
+        {title: "设置", content: GlobalSettings},
     ];
 
     let activeTab = $state(0);
